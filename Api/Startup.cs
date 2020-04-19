@@ -1,7 +1,10 @@
 using Cww.Core;
 using Cww.Core.Database;
 using Cww.Core.Factories;
+using Cww.Core.Messages;
+using GreenPipes;
 using IF.Lastfm.Core.Api;
+using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -37,8 +40,7 @@ namespace Cww.Api
             services.AddRazorPages();
             
             var lastAuth = new LastAuth(Configuration["LastFm:ApiKey"], Configuration["LastFm:ApiSecret"]);
-
-
+            
             services.AddCors(options =>
             {
                 options.AddPolicy(name: MyAllowSpecificOrigins,
@@ -55,6 +57,26 @@ namespace Cww.Api
             services.AddTransient<ISpotifyApiFactory, SpotifyApiFactory>();
             services.AddTransient<IUserApi, UserApi>();
             services.AddTransient<ITrackApi, TrackApi>();
+
+            // MassTransit setup
+            services.AddMassTransit(x =>
+            {
+                x.AddBus(provider => Bus.Factory.CreateUsingRabbitMq(cfg =>
+                {
+                    // configure health checks for this bus instance
+                    cfg.UseHealthCheck(provider);
+
+                    cfg.Host("localhost", "cww", c =>
+                    {
+                        c.Username("guest");
+                        c.Password("guest");
+                    });
+                }));
+
+                x.AddRequestClient<GroupRecentMusic.Request>();
+            });
+            services.AddHealthChecks();
+            services.AddMassTransitHostedService();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
