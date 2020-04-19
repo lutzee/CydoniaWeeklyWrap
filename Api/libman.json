@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "defaultProvider": "cdnjs",
+  "libraries": [
+
+    {
+      "library": "vue@2.6.11",
+      "destination": "wwwroot/lib/vue/"
+    }
+  ,
+{
+  "library": "underscore.js@1.9.1",
+  "destination": "wwwroot/lib/underscore.js/"
+}
+]
+}
