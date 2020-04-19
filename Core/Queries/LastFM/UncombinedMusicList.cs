@@ -92,7 +92,7 @@ namespace Cww.Core.Queries.LastFM
                 }
 
                 var newTracks = await mediator.Send(new UserWeeklyTrackList.Query { UserName = username, Limit = 30 });
-                var consumed = newTracks.ToList();
+                var consumed = await newTracks.ToListAsync();
                 cache.Set($"{Known.Cache.UserTracksCacheKey}-{username}", consumed, TimeSpan.FromMinutes(30));
 
                 return consumed;

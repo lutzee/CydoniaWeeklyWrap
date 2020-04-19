@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cww.Core.Messages;
 using Cww.Core.Models;
 using Cww.Core.Queries.LastFM;
+using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,17 +13,20 @@ namespace Cww.Api.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly IMediator mediator;
+        private readonly IBus bus;
 
-        public UserController(IMediator mediator)
+        public UserController(IBus bus)
         {
-            this.mediator = mediator;
+            this.bus = bus;
         }
 
         [Route("{username}/recent")]
         public async Task<IEnumerable<Track>> Get(string username)
         {
-            return await mediator.Send(new UserWeeklyTrackList.Query { UserName = username });
+            var request = GroupRecentMusic.Request.Create(username);
+            var client = bus.CreateRequestClient<GroupRecentMusic.Request>();
+            var response = await client.GetResponse<GroupRecentMusic.Response>(request);
+            return response.Message.Result.Tracks;
         }
 
     }

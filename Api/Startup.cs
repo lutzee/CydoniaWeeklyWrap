@@ -2,7 +2,6 @@ using Cww.Core;
 using Cww.Core.Database;
 using Cww.Core.Factories;
 using Cww.Core.Messages;
-using GreenPipes;
 using IF.Lastfm.Core.Api;
 using MassTransit;
 using MediatR;

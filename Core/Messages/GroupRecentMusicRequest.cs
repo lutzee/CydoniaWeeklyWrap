@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using Cww.Core.Models;
 using Cww.Core.Providers;
 
 namespace Cww.Core.Messages
@@ -11,12 +13,15 @@ namespace Cww.Core.Messages
 
             public DateTimeOffset RequestTime { get; protected set; }
 
-            public static Request Create()
+            public string Username { get; protected set; }
+
+            public static Request Create(string username)
             {
                 return new Request
                 {
                     CorrelationId = Guid.NewGuid(),
-                    RequestTime = DateTimeOffsetProvider.Instance.Now
+                    RequestTime = DateTimeOffsetProvider.Instance.Now,
+                    Username = username
                 };
             }
         }
@@ -39,7 +44,7 @@ namespace Cww.Core.Messages
 
         public class Result
         {
-            public string Message { get; set; }
+            public IEnumerable<Track> Tracks { get; set; }
         }
     }
 }

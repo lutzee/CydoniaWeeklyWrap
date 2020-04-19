@@ -6,10 +6,16 @@ using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using Cww.Core;
+using Cww.Core.Database;
+using Cww.Core.Factories;
+using Cww.Service.Cache;
 using Cww.Service.Consumers;
 using Cww.Service.Services;
 using GreenPipes;
+using IF.Lastfm.Core.Api;
 using MassTransit;
+using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -39,14 +45,37 @@ namespace Cww.Service
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
+                    // Config
                     services.Configure<Config>(hostContext.Configuration.GetSection("Config"));
 
+                    // Database
+                    services.AddDbContext<CwwDbContext>();
+
+                    // Mediator
+                    services.AddMediatR(typeof(Known));
+
+                    // Mass Transit
                     services.AddMassTransit(cfg =>
                     {
                         cfg.AddConsumer<GroupRecentMusicConsumer>();
                         cfg.AddBus(ConfigureBus);
                     });
+
+                    // Cache
+                    services.AddSingleton<ICacheProvider>(new RedisCacheProvider());
+                    services.AddTransient<ICacheTimeoutProvider, CacheTimeoutProvider>();
+
+                    // Apis
+                    var lastFmConfig = hostContext.Configuration.GetSection("LastFm");
+                    var lastAuth = new LastAuth(lastFmConfig["ApiKey"], lastFmConfig["ApiSecret"]);
+                    services.AddSingleton<ILastAuth>(lastAuth);
+                    services.AddTransient<ISpotifyApiFactory, SpotifyApiFactory>();
+                    services.AddTransient<IUserApi, UserApi>();
+                    services.AddTransient<ITrackApi, TrackApi>();
+
+                    // Hosted services
                     services.AddHostedService<ConsoleService>();
+                    services.AddHostedService<LastFmRecentMusicService>();
                 })
                 .ConfigureLogging((hostingContext, logging) =>
                 {
