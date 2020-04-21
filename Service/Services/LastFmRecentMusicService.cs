@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cww.Core;
+using Cww.Core.Commands.Database;
 using Cww.Core.Extensions;
 using Cww.Core.Models;
+using Cww.Core.Queries.Database;
 using Cww.Core.Queries.LastFM;
 using Cww.Service.Cache;
 using F23.StringSimilarity;
@@ -45,6 +47,58 @@ namespace Cww.Service.Services
 
         public async void GetEveryonesRecentMusic(object state)
         {
+            var allUserTracks = await GetEveryonesMusic();
+
+            var finalTracks = Combine(allUserTracks);
+
+            CalculateMostListens(finalTracks);
+            await PersistData(finalTracks);
+
+            finalTracks = SortTracks(finalTracks);
+
+            cacheProvider.Set(Known.Cache.CombinedMusicCacheKey, finalTracks);
+            Log.Logger.Information(nameof(LastFmRecentMusicService) + " Done");
+        }
+
+        private static List<Track> SortTracks(List<Track> finalTracks)
+        {
+            return finalTracks.OrderByDescending(x => x.PlayCount).ThenBy(x => x.ArtistName).ThenBy(x => x.TrackName).ToList();
+        }
+
+        private async Task PersistData(IEnumerable<Track> finalTracks)
+        {
+            Log.Logger.Information("Persisting tracks to database");
+
+            foreach (var track in finalTracks)
+            {
+                Log.Logger.Debug($"Peristing track {track.TrackName} - {track.ArtistName}");
+                var dbTrack = await mediator.Send(new GetTrack.Query
+                {
+                    TrackName = track.TrackName,
+                    ArtistName = track.ArtistName,
+                    SpotifyUid = track.SpotifyUid,
+                    Mbid = track.Mbid
+                });
+
+                if (dbTrack != null)
+                {
+                    await mediator.Publish(new UpdateTrack.Command
+                    {
+                        Track = track
+                    });
+                }
+                else
+                {
+                    await mediator.Publish(new AddTrack.Command
+                    {
+                        Track = track
+                    });
+                }
+            }
+        }
+
+        private async Task<List<IEnumerable<UserTrack>>> GetEveryonesMusic()
+        {
             var users = configuration.Users();
             var allUserTracks = new List<IEnumerable<UserTrack>>();
             if (users != null)
@@ -58,16 +112,31 @@ namespace Cww.Service.Services
                         var result = await mediator.Send(new UserWeeklyTrackList.Query
                         {
                             UserName = user,
-                            Limit = 5
+                            Limit = 100
                         });
-                        
+
                         return await result.ToListAsync();
                     }, cacheTimeoutProvider.Medium());
 
                     allUserTracks.Add(userTracks);
                 }
             }
-            
+
+            return allUserTracks;
+        }
+
+        private static void CalculateMostListens(List<Track> finalTracks)
+        {
+            Log.Logger.Information($"Calculating Most Plays");
+
+            foreach (var track in finalTracks)
+            {
+                track.MostListens = track.UserPlayCounts.OrderByDescending(x => x.Value.Value).First().Key;
+            }
+        }
+
+        private static List<Track> Combine(List<IEnumerable<UserTrack>> allUserTracks)
+        {
             var finalTracks = new List<Track>();
             var damerau = new Damerau();
             foreach (var trackList in allUserTracks)
@@ -89,8 +158,8 @@ namespace Cww.Service.Services
                             foreach (var toCheck in tracksToCheck)
                             {
                                 var distance = damerau.Distance(track.TrackName, toCheck.TrackName);
-                                Log.Logger.Information($"Checking {track.TrackName} against {toCheck.TrackName} ({distance})");
-                                
+                                Log.Logger.Debug($"Checking {track.TrackName} against {toCheck.TrackName} ({distance})");
+
                                 if (distance <= 2)
                                 {
                                     toCheck.PlayCount += track.PlayCount;
@@ -98,7 +167,7 @@ namespace Cww.Service.Services
 
                                     if (string.IsNullOrEmpty(toCheck.Mbid) && !string.IsNullOrEmpty(track.Mbid))
                                     {
-                                        Log.Logger.Information($"Found new mbid {track.Mbid}");
+                                        Log.Logger.Debug($"Found new mbid {track.Mbid}");
                                         toCheck.Mbid = track.Mbid;
                                     }
 
@@ -109,7 +178,7 @@ namespace Cww.Service.Services
 
                             if (!match)
                             {
-                                Log.Logger.Information($"Adding {track.TrackName} as no match found");
+                                Log.Logger.Debug($"Adding {track.TrackName} as no match found");
                                 var t = new Track
                                 {
                                     TrackName = track.TrackName,
@@ -128,12 +197,12 @@ namespace Cww.Service.Services
                             }
                             else
                             {
-                                Log.Logger.Information($"MATCH FOUND!!!!");
+                                Log.Logger.Debug($"MATCH FOUND!!!!");
                             }
                         }
                         else
                         {
-                            Log.Logger.Information($"No tracks for artist {track.ArtistName} present, adding");
+                            Log.Logger.Debug($"No tracks for artist {track.ArtistName} present, adding");
                             var t = new Track
                             {
                                 TrackName = track.TrackName,
@@ -153,12 +222,7 @@ namespace Cww.Service.Services
                 }
             }
 
-            foreach (var track in finalTracks)
-            {
-                track.MostListens = track.UserPlayCounts.OrderByDescending(x => x.Value.Value).First().Key;
-            }
-
-            cacheProvider.Set(Known.Cache.CombinedMusicCacheKey, finalTracks);
+            return finalTracks;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

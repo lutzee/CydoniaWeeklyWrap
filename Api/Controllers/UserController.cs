@@ -6,6 +6,7 @@ using Cww.Core.Queries.LastFM;
 using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 
 namespace Cww.Api.Controllers
 {
@@ -23,6 +24,7 @@ namespace Cww.Api.Controllers
         [Route("{username}/recent")]
         public async Task<IEnumerable<Track>> Get(string username)
         {
+            Log.Logger.Debug($"Getting tracks for {username}");
             var request = GroupRecentMusic.Request.Create(username);
             var client = bus.CreateRequestClient<GroupRecentMusic.Request>();
             var response = await client.GetResponse<GroupRecentMusic.Response>(request);

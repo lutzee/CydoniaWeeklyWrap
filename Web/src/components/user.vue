@@ -23,16 +23,18 @@
                             <th>Artist</th>
                             <th>Track</th>
                             <th>Listen Count</th>
-                            <th>Link</th>
+                            <th>Last.FM</th>
+                            <th>Spotify</th>
                         </tr>
                     </thead>
                     <tbody id="music-table-body">
                         <tr v-for="(track, index) in tracks" :key="track.mbid">
                             <td>{{ index + 1 }}</td>
                             <td>{{ track.artistName }}</td>
-                            <td>{{ track.name }}</td>
+                            <td>{{ track.trackName }}</td>
                             <td>{{ track.playCount }}</td>
-                            <td><a class="button is-light" v-bind:href="track.url">Last.fm</a></td>
+                            <td><a class="button is-danger" v-bind:href="track.url">Last.fm</a></td>
+                            <td><a class="button is-success" v-if="!!track.spotifyUrl" v-bind:href="track.spotifyUrl">Spotify</a></td>
                         </tr>
                     </tbody>
                 </table>

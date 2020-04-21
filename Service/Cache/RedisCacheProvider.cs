@@ -15,7 +15,7 @@ namespace Cww.Service.Cache
         public RedisCacheProvider()
         {
             IConnectionMultiplexer redis = ConnectionMultiplexer.Connect("192.168.1.184");
-            database = redis.GetDatabase(1);
+            database = redis.GetDatabase(0);
         }
 
         public T Get<T>(string key)
@@ -43,7 +43,7 @@ namespace Cww.Service.Cache
 
         public async Task<T> TryGet<T>(string key, Func<Task<T>> callback)
         {
-            return await TryGet(key, callback, TimeSpan.Zero);
+            return await TryGet(key, callback, TimeSpan.MaxValue);
         }
 
         public async Task<T> TryGet<T>(string key, Func<Task<T>> callback, TimeSpan expires)

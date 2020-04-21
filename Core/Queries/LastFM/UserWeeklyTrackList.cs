@@ -1,15 +1,14 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Cww.Core.Models;
+using Cww.Core.Queries.Database;
 using Cww.Core.Queries.Spotify;
 using IF.Lastfm.Core.Api;
 using IF.Lastfm.Core.Objects;
 using MediatR;
-using Microsoft.Extensions.Logging;
 using Serilog;
 
 namespace Cww.Core.Queries.LastFM
@@ -27,16 +26,13 @@ namespace Cww.Core.Queries.LastFM
         {
             private readonly IUserApi userApi;
             private readonly IMediator mediator;
-            private ILogger<Handler> logger;
 
             public Handler(
                 IUserApi userApi,
-                IMediator mediator,
-                ILoggerFactory loggerFactory)
+                IMediator mediator)
             {
                 this.userApi = userApi;
                 this.mediator = mediator;
-                this.logger = loggerFactory.CreateLogger<Handler>();
             }
 
             public async Task<IAsyncEnumerable<UserTrack>> Handle(
@@ -56,22 +52,38 @@ namespace Cww.Core.Queries.LastFM
             private async IAsyncEnumerable<UserTrack> ParseTracks(IEnumerable<LastTrack> tracks, Query message,
                 [EnumeratorCancellation] CancellationToken cancellationToken)
             {
-                foreach (var result in tracks.Take(30))
+                foreach (var result in tracks.Take(message.Limit ?? 30))
                 {
                     var track = UserTrack.Create(result, message.UserName);
 
-                    logger.LogInformation($"Getting spotify id for {result.ArtistName} - {result.Name} for user {message.UserName}");
-
-                    var spotifyTrack = await mediator.Send(new FindTrack.Query
+                    var dbTrack = await mediator.Send(new GetTrack.Query
                     {
-                        ArtistName = result.ArtistName,
-                        TrackName = result.Name
+                        Mbid = track.Mbid,
+                        TrackName = track.TrackName,
+                        ArtistName = track.ArtistName
                     }, cancellationToken);
 
-                    if (spotifyTrack != null)
+                    if (dbTrack == null || string.IsNullOrEmpty(dbTrack.SpotifyUid))
                     {
-                        track.SpotifyUrl = spotifyTrack.ExternUrls["spotify"];
-                        track.SpotifyUid = spotifyTrack.Id;
+                        Log.Logger.Information($"Getting spotify id for {result.ArtistName} - {result.Name} for user {message.UserName}");
+                        var spotifyTrack = await mediator.Send(new FindTrack.Query
+                        {
+                            ArtistName = result.ArtistName,
+                            TrackName = result.Name
+                        }, cancellationToken);
+
+                        if (spotifyTrack != null)
+                        {
+                            track.SpotifyUrl = spotifyTrack.ExternUrls["spotify"];
+                            track.SpotifyUid = spotifyTrack.Id;
+                        }
+                    }
+                    else
+                    {
+                        track.SpotifyUid = dbTrack.SpotifyUid;
+                        track.SpotifyUrl = dbTrack.SpotifyUrl;
+                        track.TrackId = dbTrack.TrackId;
+                        track.Mbid = dbTrack.Mbid;
                     }
 
                     yield return track;

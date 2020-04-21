@@ -4,6 +4,7 @@ using Cww.Core.Models;
 using Cww.Core.Queries.LastFM;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 
 namespace Cww.Api.Controllers
 {
@@ -20,6 +21,7 @@ namespace Cww.Api.Controllers
 
         public async Task<IEnumerable<Track>> Get()
         {
+            Log.Logger.Debug($"Getting group tracks");
             return await mediator.Send(new CombinedMusicList.Query());
         }
 
@@ -27,6 +29,7 @@ namespace Cww.Api.Controllers
         [Route("Uncombined")]
         public async Task<IList<UserTrack>> GetUncombined()
         {
+            Log.Logger.Debug($"Getting uncombined group tracks");
             return await mediator.Send(new UncombinedMusicList.Query());
         }
     }

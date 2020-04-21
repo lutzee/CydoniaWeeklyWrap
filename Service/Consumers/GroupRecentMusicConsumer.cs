@@ -33,13 +33,18 @@ namespace Cww.Service.Consumers
                                 var result = await mediator.Send(new UserWeeklyTrackList.Query
                                 {
                                     UserName = context.Message.Username,
-                                    Limit = 5
+                                    Limit = 100
                                 });
 
                                 var enumerable = await result.ToListAsync();
-                                cacheProvider.Set(key, enumerable, cacheTimeoutProvider.Medium());
+
+                                // Only cache if we have results
+                                if (enumerable.Any())
+                                {
+                                    cacheProvider.Set(key, enumerable, cacheTimeoutProvider.Medium());
+                                }
                                 return enumerable;
-                            });
+                            }, cacheTimeoutProvider.Medium());
 
             var response = GroupRecentMusic.Response.Create(
                 context.Message, 

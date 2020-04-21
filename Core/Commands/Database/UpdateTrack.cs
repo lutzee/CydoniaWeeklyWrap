@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Cww.Core.Database;
+using Cww.Core.Extensions;
 using Cww.Core.Models;
 using MediatR;
 
@@ -32,8 +33,16 @@ namespace Cww.Core.Commands.Database
 
                 if (dbTrack != null)
                 {
-                    dbTrack.SpotifyUrl = message.Track.SpotifyUrl;
-                    dbTrack.SpotifyUid = message.Track.SpotifyUid;
+                    if (string.IsNullOrEmpty(dbTrack.SpotifyUid))
+                    {
+                        dbTrack.SpotifyUrl = message.Track.SpotifyUrl;
+                        dbTrack.SpotifyUid = message.Track.SpotifyUid;
+                    }
+
+                    if (dbTrack.Mbid.IsNullOrEmpty())
+                    {
+                        dbTrack.Mbid = message.Track.Mbid;
+                    }
                 }
 
                 await dbContext.SaveChangesAsync(cancellationToken);

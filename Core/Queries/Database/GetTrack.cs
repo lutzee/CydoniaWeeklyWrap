@@ -16,6 +16,8 @@ namespace Cww.Core.Queries.Database
             public string ArtistName { get; set; }
 
             public string SpotifyUid { get; set; }
+
+            public string Mbid { get; set; }
         }
 
         public class Handler : IRequestHandler<Query, Track>
@@ -36,6 +38,11 @@ namespace Cww.Core.Queries.Database
                 {
                     track = await dbContext.Tracks.SingleOrDefaultAsync(
                         t => t.SpotifyUid == message.SpotifyUid, cancellationToken);
+                }
+                else if (!string.IsNullOrEmpty(message.Mbid))
+                {
+                    track = await dbContext.Tracks.SingleOrDefaultAsync(t => t.Mbid == message.Mbid,
+                        cancellationToken);
                 }
 
                 track ??= await dbContext.Tracks.SingleOrDefaultAsync(

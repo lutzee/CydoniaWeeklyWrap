@@ -28,7 +28,7 @@
                             <th>Track</th>
                             <th>Play Count</th>
                             <th>Most Plays</th>
-                            <th>Last.fm</th>
+                            <th>Last.FM</th>
                             <th>Spotify</th>
                         </tr>
                     </thead>
