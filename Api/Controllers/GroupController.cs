@@ -18,7 +18,7 @@ namespace Cww.Api.Controllers
             this.mediator = mediator;
         }
 
-        public async Task<IList<Track>> Get()
+        public async Task<IEnumerable<Track>> Get()
         {
             return await mediator.Send(new CombinedMusicList.Query());
         }

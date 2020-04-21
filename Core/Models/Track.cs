@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using IF.Lastfm.Core.Objects;
@@ -38,6 +39,8 @@ namespace Cww.Core.Models
         public string SpotifyUrl { get; set; }
 
         public string SpotifyUid { get; set; }
+
+        public Dictionary<string, int?> UserPlayCounts { get; set; }
     }
 
     public class UserTrack : Track
@@ -55,6 +58,19 @@ namespace Cww.Core.Models
                 MostListens = track.MostListens,
                 SpotifyUrl = track.SpotifyUrl,
                 SpotifyUid = track.SpotifyUid
+            };
+        }
+
+        public static UserTrack Create(LastTrack track, string username)
+        {
+            return new UserTrack
+            {
+                TrackName = track.Name,
+                ArtistName = track.ArtistName,
+                Url = track.Url,
+                PlayCount = track.PlayCount,
+                Mbid = track.Mbid,
+                Username = username
             };
         }
 

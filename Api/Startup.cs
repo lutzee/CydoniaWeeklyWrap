@@ -73,6 +73,7 @@ namespace Cww.Api
                 }));
 
                 x.AddRequestClient<GroupRecentMusic.Request>();
+                x.AddRequestClient<TrackDeduplication.Request>();
             });
             services.AddHealthChecks();
             services.AddMassTransitHostedService();

@@ -3,34 +3,45 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cww.Core.Messages;
 using Cww.Core.Models;
+using MassTransit;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
+using IMediator = MediatR.IMediator;
 
 namespace Cww.Core.Queries.LastFM
 {
     public class CombinedMusicList
     {
-        public class Query : IRequest<IList<Track>>
+        public class Query : IRequest<IEnumerable<Track>>
         {
         }
 
-        public class Handler : IRequestHandler<Query, IList<Track>>
+        public class Handler : IRequestHandler<Query, IEnumerable<Track>>
         {
             private readonly IMediator mediator;
             private readonly IMemoryCache cache;
-            
-            public Handler(IMediator mediator, IMemoryCache cache)
+            private readonly IBus bus;
+
+            public Handler(
+                IMediator mediator, 
+                IMemoryCache cache,
+                IBus bus)
             {
                 this.mediator = mediator;
                 this.cache = cache;
+                this.bus = bus;
             }
 
-            public async Task<IList<Track>> Handle(
+            public async Task<IEnumerable<Track>> Handle(
                 Query message,
                 CancellationToken cancellationToken)
             {
-                return await GetCachedTracks();
+                var requestClient = bus.CreateRequestClient<TrackDeduplication.Request>();
+                var request = new TrackDeduplication.Request();
+                var response = await requestClient.GetResponse<TrackDeduplication.Response>(request);
+                return response.Message.Result.Tracks;
             }
 
             public async Task<IList<Track>> GetCachedTracks()

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Cww.Service.Cache
@@ -20,5 +21,9 @@ namespace Cww.Service.Cache
         void Set<T>(string key, T value, TimeSpan timeout);
 
         bool Exists(string key);
+
+        IEnumerable<T> GetAll<T>(IEnumerable<string> keys);
+
+        IAsyncEnumerable<T> GetAllAsync<T>(IEnumerable<string> keys);
     }
 }

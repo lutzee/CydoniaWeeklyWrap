@@ -14,7 +14,13 @@ namespace Cww.Core.Database
             => options.UseMySql("server=localhost;database=library;user=cww;password=K7i8!mW{_9J>+)P9JxQE]_i0", b =>
             {
                 b.MigrationsAssembly("Cww.Api");
+                
             });
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Track>().Ignore(t => t.UserPlayCounts);
+        }
     }
 
     public class User

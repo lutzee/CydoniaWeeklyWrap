@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -58,7 +60,7 @@ namespace Cww.Service.Cache
 
         public void Set<T>(string key, T value)
         {
-            Set(key, value, TimeSpan.Zero);
+            Set(key, value, TimeSpan.MaxValue);
         }
 
         public void Set<T>(string key, T value, TimeSpan timeout)
@@ -69,6 +71,20 @@ namespace Cww.Service.Cache
         public bool Exists(string key)
         {
             return database.KeyExists(key);
+        }
+        
+        public IEnumerable<T> GetAll<T>(IEnumerable<string> keys)
+        {
+            return keys.Select(Get<T>);
+        }
+
+        public async IAsyncEnumerable<T> GetAllAsync<T>(IEnumerable<string> keys)
+        {
+            foreach (var key in keys)
+            {
+                var val = await database.StringGetAsync(key);
+                yield return JsonConvert.DeserializeObject<T>(val);
+            }
         }
     }
 }

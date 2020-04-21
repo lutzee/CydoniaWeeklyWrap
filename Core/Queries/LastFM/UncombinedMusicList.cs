@@ -83,10 +83,10 @@ namespace Cww.Core.Queries.LastFM
                 return combinedTracks;
             }
 
-            private async Task<List<Track>> GetCachedUserTracks(string username)
+            private async Task<List<UserTrack>> GetCachedUserTracks(string username)
             {
                 Log.Logger.Debug($"Getting recent music for {username}");
-                if (cache.TryGetValue<List<Track>>($"{Known.Cache.UserTracksCacheKey}-{username}", out var tracks))
+                if (cache.TryGetValue<List<UserTrack>>($"{Known.Cache.UserTracksCacheKey}-{username}", out var tracks))
                 {
                     return tracks;
                 }

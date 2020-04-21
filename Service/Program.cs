@@ -21,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 
 namespace Cww.Service
 {
@@ -32,10 +33,18 @@ namespace Cww.Service
         {
             var isService = !(Debugger.IsAttached || args.Contains("--console"));
 
+            Log.Logger = new LoggerConfiguration()
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .CreateLogger();
+
             var builder = new HostBuilder()
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
-                    config.AddJsonFile("appsettings.json", true);
+                    config
+                        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                        .AddJsonFile($"appsettings.{hostingContext.HostingEnvironment.EnvironmentName}.json", optional: true);
+
                     config.AddEnvironmentVariables();
 
                     if (args != null)
@@ -45,12 +54,15 @@ namespace Cww.Service
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
+                    // Logging
+                    services.AddLogging(loggingBuilder => { loggingBuilder.AddSerilog(); });
+
                     // Config
                     services.Configure<Config>(hostContext.Configuration.GetSection("Config"));
 
                     // Database
                     services.AddDbContext<CwwDbContext>();
-
+                    
                     // Mediator
                     services.AddMediatR(typeof(Known));
 
@@ -58,6 +70,7 @@ namespace Cww.Service
                     services.AddMassTransit(cfg =>
                     {
                         cfg.AddConsumer<GroupRecentMusicConsumer>();
+                        cfg.AddConsumer<TrackDeduplicationConsumer>();
                         cfg.AddBus(ConfigureBus);
                     });
 

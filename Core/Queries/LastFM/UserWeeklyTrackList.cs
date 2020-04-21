@@ -16,14 +16,14 @@ namespace Cww.Core.Queries.LastFM
 {
     public class UserWeeklyTrackList
     {
-        public class Query : IRequest<IAsyncEnumerable<Track>>
+        public class Query : IRequest<IAsyncEnumerable<UserTrack>>
         {
             public string UserName { get; set; }
 
             public int? Limit { get; set; }
         }
 
-        public class Handler : IRequestHandler<Query, IAsyncEnumerable<Track>>
+        public class Handler : IRequestHandler<Query, IAsyncEnumerable<UserTrack>>
         {
             private readonly IUserApi userApi;
             private readonly IMediator mediator;
@@ -39,26 +39,26 @@ namespace Cww.Core.Queries.LastFM
                 this.logger = loggerFactory.CreateLogger<Handler>();
             }
 
-            public async Task<IAsyncEnumerable<Track>> Handle(
+            public async Task<IAsyncEnumerable<UserTrack>> Handle(
                 Query message,
                 CancellationToken cancellationToken)
             {
                 return await GetTracks(message, cancellationToken);
             }
 
-            private async Task<IAsyncEnumerable<Track>> GetTracks(Query message, CancellationToken cancellationToken)
+            private async Task<IAsyncEnumerable<UserTrack>> GetTracks(Query message, CancellationToken cancellationToken)
             {
                 var results = await userApi.GetWeeklyTrackChartAsync(message.UserName);
                 
                 return ParseTracks(results.Content, message, cancellationToken);
             }
 
-            private async IAsyncEnumerable<Track> ParseTracks(IEnumerable<LastTrack> tracks, Query message,
+            private async IAsyncEnumerable<UserTrack> ParseTracks(IEnumerable<LastTrack> tracks, Query message,
                 [EnumeratorCancellation] CancellationToken cancellationToken)
             {
-                foreach (var result in tracks.Take(5))
+                foreach (var result in tracks.Take(30))
                 {
-                    var track = new Track(result);
+                    var track = UserTrack.Create(result, message.UserName);
 
                     logger.LogInformation($"Getting spotify id for {result.ArtistName} - {result.Name} for user {message.UserName}");
 
