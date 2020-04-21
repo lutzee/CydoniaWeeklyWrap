@@ -2,9 +2,7 @@
 using System.Threading.Tasks;
 using Cww.Core.Messages;
 using Cww.Core.Models;
-using Cww.Core.Queries.LastFM;
 using MassTransit;
-using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 

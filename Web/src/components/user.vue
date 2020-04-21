@@ -48,7 +48,7 @@
     import RingLoader from 'vue-spinner/src/RingLoader.vue'
 
     import UserApi from "../api/api.user";
-    import { LastTrack } from "../typings/track";
+    import { Track } from "../typings/track";
     import _ from "underscore";
 
     @Component({
@@ -57,7 +57,7 @@
         }
     })
     export default class HomeVue extends Vue {
-        public tracks: Array<LastTrack> = [];
+        public tracks: Array<Track> = [];
         public username: string = "";
         public isLoading: boolean = false;
 
@@ -77,7 +77,7 @@
         public getRecentInternal(): void {
             UserApi.Get.recent(this.username)
                             .then(tracks => {
-                                this.tracks  = _.filter(tracks.data, (track: LastTrack) => !!track.mbid);
+                                this.tracks  = tracks.data;
                                 this.isLoading = false;
                             })
             

@@ -6,16 +6,14 @@ namespace Cww.Core.Database
 {
     public class CwwDbContext : DbContext
     {
+        public CwwDbContext(DbContextOptions<CwwDbContext> dbContextOptions)
+            : base(dbContextOptions)
+        {
+        }
+
         public DbSet<Track> Tracks { get; set; }
 
         public DbSet<User> Users { get; set; }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder options)
-            => options.UseMySql("server=localhost;database=library;user=cww;password=K7i8!mW{_9J>+)P9JxQE]_i0", b =>
-            {
-                b.MigrationsAssembly("Cww.Api");
-                
-            });
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

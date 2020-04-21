@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
-using System.Net.Security;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Cww.Core;
 using Cww.Core.Database;
@@ -16,6 +12,7 @@ using GreenPipes;
 using IF.Lastfm.Core.Api;
 using MassTransit;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,17 +24,12 @@ namespace Cww.Service
 {
     public class Program
     {
-        internal static Config Config { get; set; }
+        internal static RabbitMq RabbitMq { get; set; }
 
         static async Task Main(string[] args)
         {
             var isService = !(Debugger.IsAttached || args.Contains("--console"));
-
-            Log.Logger = new LoggerConfiguration()
-                .Enrich.FromLogContext()
-                .WriteTo.Console()
-                .CreateLogger();
-
+            
             var builder = new HostBuilder()
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
@@ -54,14 +46,24 @@ namespace Cww.Service
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
+                    Log.Logger = new LoggerConfiguration()
+                        .Enrich.FromLogContext()
+                        .ReadFrom.Configuration(hostContext.Configuration)
+                        .WriteTo.Console()
+                        .CreateLogger();
+
                     // Logging
                     services.AddLogging(loggingBuilder => { loggingBuilder.AddSerilog(); });
 
-                    // Config
-                    services.Configure<Config>(hostContext.Configuration.GetSection("Config"));
+                    // RabbitMq
+                    services.Configure<RabbitMq>(hostContext.Configuration.GetSection("RabbitMq"));
 
                     // Database
-                    services.AddDbContext<CwwDbContext>();
+                    var dbConfig = hostContext.Configuration.GetSection("Database");
+                    services.AddDbContext<CwwDbContext>(options => options.UseMySql(dbConfig["ConnectionString"], b =>
+                    {
+                        b.MigrationsAssembly("Cww.Api");
+                    }));
                     
                     // Mediator
                     services.AddMediatR(typeof(Known));
@@ -75,7 +77,7 @@ namespace Cww.Service
                     });
 
                     // Cache
-                    services.AddSingleton<ICacheProvider>(new RedisCacheProvider());
+                    services.AddSingleton<ICacheProvider>(new RedisCacheProvider(hostContext.Configuration));
                     services.AddTransient<ICacheTimeoutProvider, CacheTimeoutProvider>();
 
                     // Apis
@@ -108,43 +110,15 @@ namespace Cww.Service
 
         static IBusControl ConfigureBus(IServiceProvider provider)
         {
-            Config = provider.GetRequiredService<IOptions<Config>>().Value;
+            RabbitMq = provider.GetRequiredService<IOptions<RabbitMq>>().Value;
 
-            X509Certificate2 x509Certificate2 = null;
-
-            X509Store store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
-            store.Open(OpenFlags.ReadOnly);
-
-            try
-            {
-                X509Certificate2Collection certificatesInStore = store.Certificates;
-
-                x509Certificate2 = certificatesInStore.OfType<X509Certificate2>()
-                    .FirstOrDefault(cert => cert.Thumbprint?.ToLower() == Config.SSLThumbprint?.ToLower());
-            }
-            finally
-            {
-                store.Close();
-            }
 
             return Bus.Factory.CreateUsingRabbitMq(cfg =>
             {
-                var host = cfg.Host(Config.Host, Config.VirtualHost, h =>
+                var host = cfg.Host(RabbitMq.Host, RabbitMq.VirtualHost, h =>
                 {
-                    h.Username(Config.Username);
-                    h.Password(Config.Password);
-
-                    if (Config.SSLActive)
-                    {
-                        h.UseSsl(ssl =>
-                        {
-                            ssl.ServerName = Dns.GetHostName();
-                            ssl.AllowPolicyErrors(SslPolicyErrors.RemoteCertificateNameMismatch);
-                            ssl.Certificate = x509Certificate2;
-                            ssl.Protocol = SslProtocols.Tls12;
-                            ssl.CertificateSelectionCallback = CertificateSelectionCallback;
-                        });
-                    }
+                    h.Username(RabbitMq.Username);
+                    h.Password(RabbitMq.Password);
                 });
 
                 cfg.ReceiveEndpoint("cww", e =>
@@ -155,18 +129,6 @@ namespace Cww.Service
                 });
                 cfg.ConfigureEndpoints(provider);
             });
-        }
-
-        private static X509Certificate CertificateSelectionCallback(object sender,
-            string targetHost,
-            X509CertificateCollection localCertificates,
-            X509Certificate remoteCertificate,
-            string[] acceptableIssuers)
-        {
-            var serverCertificate = localCertificates.OfType<X509Certificate2>()
-                .FirstOrDefault(cert => cert.Thumbprint.ToLower() == Config.SSLThumbprint.ToLower());
-
-            return serverCertificate ?? throw new Exception("Wrong certificate");
         }
     }
 }

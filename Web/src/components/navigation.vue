@@ -53,7 +53,8 @@ import { SpotifyUser } from "../typings/spotify";
 
         public created(): void {
             var baseUrl = "https://accounts.spotify.com/authorize"
-            var redirectUrl = "http://localhost:8080";
+            //var redirectUrl = "http://localhost:8080";
+            var redirectUrl = "https://cww.lutzee.net";
             var clientId = "9e19e049167e49949cfbf0074816991d";
             var scopes: Array<string> = [
                 "playlist-read-collaborative",

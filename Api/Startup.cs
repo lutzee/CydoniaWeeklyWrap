@@ -48,16 +48,26 @@ namespace Cww.Api
 
             services.AddMemoryCache();
             services.AddControllers();
-            services.AddDbContext<CwwDbContext>();
+
+            // Database
+            var dbConfig = Configuration.GetSection("Database");
+            services.AddDbContext<CwwDbContext>(options => options.UseMySql(dbConfig["ConnectionString"], b =>
+            {
+                b.MigrationsAssembly("Cww.Api");
+            }));
+
+            // Mediator
             services.AddMediatR(typeof(Known));
 
+            // Last.FM
             services.AddSingleton<ILastAuth>(lastAuth);
-
-            services.AddTransient<ISpotifyApiFactory, SpotifyApiFactory>();
             services.AddTransient<IUserApi, UserApi>();
             services.AddTransient<ITrackApi, TrackApi>();
 
-            // MassTransit setup
+            // Spotify
+            services.AddTransient<ISpotifyApiFactory, SpotifyApiFactory>();
+
+            // MassTransit
             services.AddMassTransit(x =>
             {
                 x.AddBus(provider => Bus.Factory.CreateUsingRabbitMq(cfg =>

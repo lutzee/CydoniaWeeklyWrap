@@ -3,15 +3,15 @@ import store from "../store";
 
 export module Api {
     export class Url {
-        private _url: string;
-        private _headers: any;
+        private url: string;
+        private headers: any;
 
         private hasAccessToken: boolean = false;
 
         constructor(url: string, headers?: any) {
-            this._url = url;
-            if (headers) { this._headers = headers } else {
-                this._headers = {
+            this.url = url;
+            if (headers) { this.headers = headers } else {
+                this.headers = {
                     "Cache-Control": "no-cache"
                 }
             }
@@ -19,7 +19,7 @@ export module Api {
 
         public setAccessToken(accessToken: string): Url {
             if (!this.hasAccessToken) {
-                this._headers["Authorization"] = `Bearer ${accessToken}`;
+                this.headers["Authorization"] = `Bearer ${accessToken}`;
                 this.hasAccessToken = true;
             }
             return this;
@@ -31,35 +31,35 @@ export module Api {
         }
 
         public toString(): string {
-            return this._url;
+            return this.url;
         }
 
         public append(value: any): Url {
-            return new Url(this._append(this._url, value.toString()), this._headers);
+            return new Url(this._append(this.url, value.toString()), this.headers);
         }
 
         public query(value: any): Url {
-            return new Url(this._query(this._url, value.toString()));
+            return new Url(this._query(this.url, value.toString()));
         }
 
         public get(data: any = {}): AxiosPromise<any> {
-            return axios.get(this._url, { data: data, headers: this._headers });
+            return axios.get(this.url, { data: data, headers: this.headers });
         }
 
         public post(data: any = {}): AxiosPromise<any> {
-            return axios.post(this._url, data, { headers: this._headers });
+            return axios.post(this.url, data, { headers: this.headers });
         }
 
         public put(data: any = {}): AxiosPromise<any> {
-            return axios.put(this._url, data, { headers: this._headers });
+            return axios.put(this.url, data, { headers: this.headers });
         }
 
         public patch(data: any = {}): AxiosPromise<any> {
-            return axios.patch(this._url, data, { headers: this._headers });
+            return axios.patch(this.url, data, { headers: this.headers });
         }
 
         public delete(): AxiosPromise<any> {
-            return axios.delete(this._url, { headers: this._headers });
+            return axios.delete(this.url, { headers: this.headers });
         }
 
         private _query(str1: string, str2: string): string {
@@ -88,8 +88,8 @@ export module Api {
         }
     }
 
-    //export var base = "https://cwwapi.lutzee.net";
-    export var base = "https://localhost:44339";
+    export var base = "https://cwwapi.lutzee.net";
+    //export var base = "https://localhost:44339";
     export var spotifyUrl = new Url("https://api.spotify.com/v1", {}).setSpotifyAccessToken();
     export var apiUrl = new Url(base).append("api/");
 }

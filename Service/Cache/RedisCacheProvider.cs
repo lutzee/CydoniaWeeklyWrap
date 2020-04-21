@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 
@@ -12,10 +13,11 @@ namespace Cww.Service.Cache
     {
         private readonly IDatabase database;
 
-        public RedisCacheProvider()
+        public RedisCacheProvider(IConfiguration configuration)
         {
-            IConnectionMultiplexer redis = ConnectionMultiplexer.Connect("192.168.1.184");
-            database = redis.GetDatabase(0);
+            var redisConfig = configuration.GetSection("redis");
+            IConnectionMultiplexer redis = ConnectionMultiplexer.Connect(redisConfig["hostname"]);
+            database = redis.GetDatabase(Convert.ToInt32(redisConfig["Database"]));
         }
 
         public T Get<T>(string key)
