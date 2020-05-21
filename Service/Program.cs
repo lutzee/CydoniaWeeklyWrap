@@ -29,13 +29,14 @@ namespace Cww.Service
         static async Task Main(string[] args)
         {
             var isService = !(Debugger.IsAttached || args.Contains("--console"));
-            
+
             var builder = new HostBuilder()
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
                     config
                         .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                        .AddJsonFile($"appsettings.{hostingContext.HostingEnvironment.EnvironmentName}.json", optional: true);
+                        .AddJsonFile($"appsettings.{hostingContext.HostingEnvironment.EnvironmentName}.json",
+                            optional: true);
 
                     config.AddEnvironmentVariables();
 
@@ -60,11 +61,9 @@ namespace Cww.Service
 
                     // Database
                     var dbConfig = hostContext.Configuration.GetSection("Database");
-                    services.AddDbContext<CwwDbContext>(options => options.UseMySql(dbConfig["ConnectionString"], b =>
-                    {
-                        b.MigrationsAssembly("Cww.Api");
-                    }));
-                    
+                    services.AddDbContext<CwwDbContext>(options =>
+                        options.UseMySql(dbConfig["ConnectionString"], b => { b.MigrationsAssembly("Cww.Api"); }));
+
                     // Mediator
                     services.AddMediatR(typeof(Known));
 
@@ -108,10 +107,9 @@ namespace Cww.Service
             }
         }
 
-        static IBusControl ConfigureBus(IServiceProvider provider)
+        static IBusControl ConfigureBus(IRegistrationContext<IServiceProvider> registrationContext)
         {
-            RabbitMq = provider.GetRequiredService<IOptions<RabbitMq>>().Value;
-
+            RabbitMq = registrationContext.Container.GetRequiredService<IOptions<RabbitMq>>().Value;
 
             return Bus.Factory.CreateUsingRabbitMq(cfg =>
             {
@@ -125,9 +123,9 @@ namespace Cww.Service
                 {
                     e.PrefetchCount = 16;
                     e.UseMessageRetry(x => x.Interval(2, 100));
-                    e.ConfigureConsumer<GroupRecentMusicConsumer>(provider);
+                    e.ConfigureConsumer<GroupRecentMusicConsumer>(registrationContext);
                 });
-                cfg.ConfigureEndpoints(provider);
+                cfg.ConfigureEndpoints(registrationContext);
             });
         }
     }

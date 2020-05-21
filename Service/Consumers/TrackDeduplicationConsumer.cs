@@ -1,18 +1,11 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cww.Core;
-using Cww.Core.Extensions;
 using Cww.Core.Messages;
 using Cww.Core.Models;
 using Cww.Service.Cache;
-using F23.StringSimilarity;
-using F23.StringSimilarity.Interfaces;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
-using MoreLinq;
 
 namespace Cww.Service.Consumers
 {

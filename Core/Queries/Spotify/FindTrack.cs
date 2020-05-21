@@ -2,7 +2,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Cww.Core.Factories;
+using F23.StringSimilarity;
 using MediatR;
+using Serilog;
 using SpotifyAPI.Web.Enums;
 using SpotifyAPI.Web.Models;
 
@@ -31,10 +33,24 @@ namespace Cww.Core.Queries.Spotify
                 CancellationToken cancellationToken)
             {
                 var api = apiFactory.GetSpotifyApi();
-                var result = await api.SearchItemsAsync($"track:{message.TrackName} artist:{message.ArtistName}", SearchType.Track, 1);
+                var result = await api.SearchItemsAsync($"{message.TrackName} artist:{message.ArtistName}", SearchType.Track, 1);
 
-                var i = result.Tracks?.Items?.FirstOrDefault();
+                var damerau = new Damerau();
+                var i = result.Tracks?.Items?.Where(t => FindBestMatch(t, message, damerau)).FirstOrDefault();
                 return i;
+            }
+
+            private bool FindBestMatch(FullTrack track, Query message, Damerau damerau)
+            {
+                var distance = damerau.Distance(track.Name, message.TrackName);
+                Log.Logger.Debug($"Checking {track.Name} against {message.TrackName} ({distance})");
+
+                if (distance <= 2)
+                {
+                    return true;
+                }
+
+                return false;
             }
         }
     }

@@ -103,6 +103,7 @@ namespace Cww.Api
                 app.UseHsts();
             }
 
+            app.UseSerilogRequestLogging();
             app.UseHttpsRedirection();
             
             app.UseCors(MyAllowSpecificOrigins);

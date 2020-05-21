@@ -163,7 +163,14 @@ namespace Cww.Service.Services
                                 if (distance <= 2)
                                 {
                                     toCheck.PlayCount += track.PlayCount;
-                                    toCheck.UserPlayCounts.Add(username, track.PlayCount);
+                                    if (toCheck.UserPlayCounts.ContainsKey(username))
+                                    {
+                                        toCheck.UserPlayCounts[username] += track.PlayCount;
+                                    }
+                                    else
+                                    {
+                                        toCheck.UserPlayCounts.Add(username, track.PlayCount);
+                                    }
 
                                     if (string.IsNullOrEmpty(toCheck.Mbid) && !string.IsNullOrEmpty(track.Mbid))
                                     {
